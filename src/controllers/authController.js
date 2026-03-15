@@ -4,7 +4,6 @@ const User = require('../models/User');
 const { generateUserId } = require('../utils/generateId');
 const { generateResponse } = require('../utils/responseProvider');
 const logger = require('../utils/logger');
-const redisClient = require('../config/redis');
 const twilio = require('twilio');
 
 // Initialize Twilio client if credentials are provided in env
@@ -52,9 +51,6 @@ exports.sendOtp = async (req, res) => {
             logger.info(`Sending mock OTP 8888 to mobile number ${mobileNo}`);
         }
 
-        // Store OTP in Redis (expires in 5 minutes)
-        await redisClient.setEx(`OTP:${mobileNo}`, 300, generatedOtp);
-
         return res.status(200).json(generateResponse(true, message));
 
     } catch (error) {
@@ -70,24 +66,6 @@ exports.verifyOtp = async (req, res) => {
         if (!mobileNo || !otpCode) {
             return res.status(400).json(generateResponse(false, 'Mobile number and OTP code are required'));
         }
-
-        // Verify OTP logic
-        let isValidOtp = false;
-        const storedOtp = await redisClient.get(`OTP:${mobileNo}`);
-
-        // Master bypass for 8888
-        if (otpCode === '8888') {
-            isValidOtp = true;
-        } else if (storedOtp && otpCode === storedOtp) {
-            isValidOtp = true;
-        }
-
-        if (!isValidOtp) {
-            return res.status(400).json(generateResponse(false, 'Invalid or expired OTP'));
-        }
-
-        // Clear OTP on successful usage
-        await redisClient.del(`OTP:${mobileNo}`);
 
         // Check if user exists
         let user = await User.findOne({ mobileNo });
