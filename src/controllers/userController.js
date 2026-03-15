@@ -65,7 +65,7 @@ exports.getUser = async (req, res) => {
             return res.status(404).json(generateResponse(false, 'User not found'));
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             message: 'User profile fetched successfully', user
         })
     } catch (error) {
