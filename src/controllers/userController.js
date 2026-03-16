@@ -42,10 +42,11 @@ exports.completeProfile = async (req, res) => {
 
         logger.info(`User profile completed for user _id: ${updatedUser._id}`);
 
-        return res.status(200).json(generateResponse(true, 'Profile completed successfully', {
+        return res.status(200).json({
+            message: "Profile completed successfully",
             user: updatedUser,
             token
-        }));
+        });
 
     } catch (error) {
         logger.error(`Error in completeProfile: ${error.message}`);
