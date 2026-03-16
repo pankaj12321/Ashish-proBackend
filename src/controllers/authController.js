@@ -20,24 +20,24 @@ exports.sendOtp = async (req, res) => {
             return res.status(400).json(generateResponse(false, 'Mobile number is required'));
         }
 
+        let existingUser = await User.findOne({ mobileNo });
+        if (existingUser) {
+            return res.status(200).json(generateResponse(false, 'User already registered, please go to login page'));
+        }
+
         let user;
         let message = 'OTP sent successfully';
-        if (!existingUser) {
-            user = await User.create({
-                mobileNo,
-                userId: generateUserId(),
-                isProfileCompleted: false,
-                isMobileVerified: false,
-                status: 'active',
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            });
-            logger.info(`New user created: ${mobileNo}`);
-            message = 'User registered and OTP sent successfully';
-        } else {
-            user = existingUser;
-            logger.info(`OTP requested for existing user: ${mobileNo}`);
-        }
+        user = await User.create({
+            mobileNo,
+            userId: generateUserId(),
+            isProfileCompleted: false,
+            isMobileVerified: false,
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+        logger.info(`New user created: ${mobileNo}`);
+        message = 'User registered and OTP sent successfully';
 
         let generatedOtp = '8888';
         user.otp = generatedOtp;
