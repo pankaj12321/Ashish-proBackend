@@ -10,7 +10,33 @@ const app = express();
 
 // Middlewares
 app.use(helmet());
-app.use(cors());
+const allowedOrigins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:4500",
+    "http://localhost:4600",
+    "http://127.0.0.1:4500",
+    "http://127.0.0.1:4600",
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allows requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+
+        if (allowedOrigins.includes(normalizedOrigin) || normalizedOrigin.endsWith('.vercel.app')) {
+            return callback(null, true);
+        } else {
+            console.error(`[CORS Error] Origin blocked: ${origin}`);
+            return callback(new Error(`Not allowed by CORS. Blocked Origin: ${origin}`));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
