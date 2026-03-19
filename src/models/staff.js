@@ -74,6 +74,15 @@ const staffSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    staffPayableSalary: [
+        {
+            month: { type: String },
+            year: { type: Number },
+            totalPayableSalary: { type: Number, default: 0 },
+            presentDays: { type: Number, default: 0 },
+            paidLeaveDays: { type: Number, default: 0 }
+        }
+    ]
 
 },
     { timestamps: true }

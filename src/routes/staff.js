@@ -10,6 +10,9 @@ router.get('/get-staff', authMiddleware, staffContoller.handleToGetStaffListByAd
 router.patch('/update', authMiddleware, uploadImages, staffContoller.handleToUpdateStaffByAdmin);
 router.delete('/delete', authMiddleware, staffContoller.handleToDeleteTheStaffByAdmin);
 
+router.post('/mark-attendance', authMiddleware, staffContoller.handleToMarkAttendanceOfStaff);
+router.patch('/edit-attendance', authMiddleware, staffContoller.handleToEditAttendanceOfStaffByAdmin);
+router.get('/get-attendance', authMiddleware, staffContoller.handleToGetAttendanceDetailsOfStaff);
 
 
 module.exports = router;
