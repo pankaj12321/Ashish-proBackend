@@ -3,6 +3,7 @@ const app = require('./src/app');
 const http = require('http');
 const connectDB = require('./src/config/db');
 const logger = require('./src/utils/logger');
+const { startSalaryCron } = require('./src/jobs/salaryCron');
 
 const PORT = process.env.PORT || 6000;
 
@@ -13,6 +14,7 @@ const startServer = async () => {
         await connectDB();
         server.listen(PORT, () => {
             logger.info(`Server is running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+            startSalaryCron();
         });
     } catch (error) {
         logger.error(`Failed to start server: ${error.message}`);

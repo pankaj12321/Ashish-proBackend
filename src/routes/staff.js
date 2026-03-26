@@ -10,9 +10,13 @@ router.get('/get-staff', authMiddleware, staffContoller.handleToGetStaffListByAd
 router.patch('/update', authMiddleware, uploadImages, staffContoller.handleToUpdateStaffByAdmin);
 router.delete('/delete', authMiddleware, staffContoller.handleToDeleteTheStaffByAdmin);
 
+
+// attendance 
 router.post('/mark-attendance', authMiddleware, staffContoller.handleToMarkAttendanceOfStaff);
 router.patch('/edit-attendance', authMiddleware, staffContoller.handleToEditAttendanceOfStaffByAdmin);
 router.get('/get-attendance', authMiddleware, staffContoller.handleToGetAttendanceDetailsOfStaff);
+router.get('/khatabook/:staffId', authMiddleware, staffContoller.handleToGetStaffKhatabook);
+router.post('/make-entries/khatabook', authMiddleware, uploadImages, staffContoller.handleToMakeTheEntryInStaffKhatabook);
 
 
 module.exports = router;

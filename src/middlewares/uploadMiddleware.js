@@ -40,6 +40,7 @@ module.exports = {
     uploadImages: upload.fields([
         { name: 'profileImage', maxCount: 1 },
         { name: 'profileImageUrl', maxCount: 1 },
-        { name: 'IdProofImage', maxCount: 5 }
+        { name: 'IdProofImage', maxCount: 5 },
+        { name: 'paymentScreenshoot', maxCount: 1 }
     ])
 };

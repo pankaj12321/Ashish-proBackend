@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const Staff = require('../models/staff');
 const { generateUserId, entityIdGenerator } = require('../utils/generateId');
 const { attendanceRecord } = require('../models/attendance');
+const StaffKhatabook = require('../models/staffKhataBook');
 
 const asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
@@ -104,11 +105,36 @@ const handleToGetStaffListByAdmin = asyncHandler(async (req, res) => {
         }
         const staffList = await Staff.find(matchQuery).sort({ createdAt: -1 });
         const countStaffDocuments = await Staff.countDocuments(matchQuery);
+
         if (!staffList || staffList.length === 0) {
             return res.status(404).json({ message: "No staff users found" });
         }
+
+        // Add current month salary summary for clarity
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonthName = today.toLocaleString('default', { month: 'long' });
+
+        const enhancedStaffList = staffList.map(staff => {
+            const currentSalaryRecord = staff.staffPayableSalary.find(
+                record => record.month === currentMonthName && record.year === currentYear
+            );
+
+            return {
+                ...staff.toObject(),
+                currentMonthSummary: currentSalaryRecord || {
+                    month: currentMonthName,
+                    year: currentYear,
+                    totalPayableSalary: 0,
+                    presentDays: 0,
+                    paidLeaveDays: 0
+                }
+            };
+        });
+
         return res.status(200).json({
-            message: "Staff users fetched successfully", staffList: staffList,
+            message: "Staff users fetched successfully",
+            staffList: enhancedStaffList,
             countStaff: countStaffDocuments
         });
 
@@ -455,6 +481,117 @@ const handleToGetAttendanceDetailsOfStaff = asyncHandler(async (req, res) => {
     }
 });
 
+const handleToGetStaffKhatabook = asyncHandler(async (req, res) => {
+    try {
+        const decodedToken = req.user;
+        if (!decodedToken || decodedToken.role !== 'hotel') {
+            return res.status(403).json({ message: "Forbidden: Unauthorized access" });
+        }
+        const { staffId } = req.params;
+        if (!staffId) {
+            return res.status(400).json({ message: "staffId is required" });
+        }
+
+        const khatabook = await StaffKhatabook.findOne({ staffId });
+        if (!khatabook) {
+            return res.status(200).json({
+                message: "No khatabook found for this staff",
+                khatabook: {
+                    staffId,
+                    paidToStaff: [],
+                    takenFromStaff: [],
+                    totalPaidToStaff: 0,
+                    totalTakenFromStaffUser: 0
+                }
+            });
+        }
+
+        // Lazy-fix: Recalculate totals if they are mismatched
+        const expectedPaid = khatabook.paidToStaff.reduce((acc, curr) => acc + (curr.Rs || 0), 0);
+        const expectedTaken = khatabook.takenFromStaff.reduce((acc, curr) => acc + (curr.Rs || 0), 0);
+
+        if (khatabook.totalPaidToStaff !== expectedPaid || khatabook.totalTakenFromStaffUser !== expectedTaken) {
+            khatabook.totalPaidToStaff = expectedPaid;
+            khatabook.totalTakenFromStaffUser = expectedTaken;
+            await khatabook.save();
+        }
+
+        return res.status(200).json({
+            message: "Khatabook fetched successfully",
+            khatabook
+        });
+    } catch (err) {
+        console.error("Error fetching khatabook:", err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
+const handleToMakeTheEntryInStaffKhatabook = asyncHandler(async (req, res) => {
+    try {
+        const decodedToken = req.user;
+        if (!decodedToken || decodedToken.role !== 'hotel') {
+            return res.status(403).json({ message: "Forbidden: Unauthorized access" });
+        }
+
+        const { staffId, Rs, paymentMode, description, type, billno, returnDate } = req.body;
+
+        if (!staffId || !Rs || !type) {
+            return res.status(400).json({ message: "staffId, Rs, and type (given/taken) are required" });
+        }
+
+        const existingStaffUser = await Staff.findOne({ staffId });
+        if (!existingStaffUser) {
+            return res.status(404).json({ message: "Staff user not found" });
+        }
+
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        let paymentScreenshootUrl = "";
+
+        if (req.files?.paymentScreenshoot?.length > 0) {
+            paymentScreenshootUrl = `${baseUrl}/uploads/images/${req.files.paymentScreenshoot[0].filename}`;
+        }
+
+        const transactionItem = {
+            Rs: Number(Rs),
+            paymentMode: paymentMode || "cash",
+            description: description || "",
+            paymentScreenshoot: paymentScreenshootUrl,
+            billno: billno || "",
+            returnDate: returnDate || null,
+            updatedAt: new Date()
+        };
+
+        let khatabook = await StaffKhatabook.findOne({ staffId });
+        if (!khatabook) {
+            khatabook = new StaffKhatabook({
+                staffId,
+                paidToStaff: [],
+                takenFromStaff: [],
+                totalPaidToStaff: 0,
+                totalTakenFromStaffUser: 0
+            });
+        }
+
+        if (type === "given") {
+            khatabook.paidToStaff.push(transactionItem);
+        } else if (type === "taken") {
+            khatabook.takenFromStaff.push(transactionItem);
+        } else {
+            return res.status(400).json({ message: "Invalid transaction type. Use 'given' or 'taken'." });
+        }
+
+        await khatabook.save();
+
+        return res.status(200).json({
+            message: "Transaction added successfully",
+            khatabook
+        });
+    } catch (err) {
+        console.error("Error in making manual entry in staff khatabook:", err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+
 module.exports = {
     handleToAddStaffUserByAdmin,
     handleToGetStaffListByAdmin,
@@ -462,5 +599,7 @@ module.exports = {
     handleToDeleteTheStaffByAdmin,
     handleToMarkAttendanceOfStaff,
     handleToEditAttendanceOfStaffByAdmin,
-    handleToGetAttendanceDetailsOfStaff
+    handleToGetAttendanceDetailsOfStaff,
+    handleToGetStaffKhatabook,
+    handleToMakeTheEntryInStaffKhatabook
 }
