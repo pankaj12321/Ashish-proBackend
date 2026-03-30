@@ -550,13 +550,14 @@ const handleToMakeTheEntryInStaffKhatabook = asyncHandler(async (req, res) => {
         if (req.files?.paymentScreenshoot?.length > 0) {
             paymentScreenshootUrl = `${baseUrl}/uploads/images/${req.files.paymentScreenshoot[0].filename}`;
         }
-
+        const entryId = entityIdGenerator("ENT");
         const transactionItem = {
             Rs: Number(Rs),
             paymentMode: paymentMode || "cash",
             description: description || "",
             paymentScreenshoot: paymentScreenshootUrl,
             billno: billno || "",
+            entryId: entryId,
             returnDate: returnDate || null,
             updatedAt: new Date()
         };

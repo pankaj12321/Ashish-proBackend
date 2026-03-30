@@ -32,6 +32,9 @@ const staffKhatabookTransectionRecordSchema = mongoose.Schema({
         type: String,
         required: true,
     },
+    entryId: {
+        type: String,
+    },
 
     paidToStaff: {
         type: [staffKhatabookItemSchema],
