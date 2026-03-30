@@ -59,5 +59,20 @@ staffKhatabookTransectionRecordSchema.pre("save", function () {
     this.totalTakenFromStaffUser = this.takenFromStaff.reduce((acc, curr) => acc + (curr.Rs || 0), 0);
 });
 
+staffKhatabookTransectionRecordSchema.post("save", async function (doc) {
+    try {
+        const Staff = mongoose.model('Staff');
+        await Staff.findOneAndUpdate(
+            { staffId: doc.staffId },
+            {
+                totalPaidToStaff: doc.totalPaidToStaff,
+                totalTakenFromStaffUser: doc.totalTakenFromStaffUser
+            }
+        );
+    } catch (err) {
+        console.error("Error syncing StaffKhatabook totals to Staff model:", err);
+    }
+});
+
 const StaffKhatabook = mongoose.model('StaffKhatabook', staffKhatabookTransectionRecordSchema);
 module.exports = StaffKhatabook;

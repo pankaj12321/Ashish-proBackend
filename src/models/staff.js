@@ -82,7 +82,15 @@ const staffSchema = new mongoose.Schema({
             presentDays: { type: Number, default: 0 },
             paidLeaveDays: { type: Number, default: 0 }
         }
-    ]
+    ],
+    totalPaidToStaff: {
+        type: Number,
+        default: 0,
+    },
+    totalTakenFromStaffUser: {
+        type: Number,
+        default: 0,
+    },
 
 },
     { timestamps: true }

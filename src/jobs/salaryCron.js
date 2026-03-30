@@ -39,17 +39,27 @@ const startSalaryCron = () => {
                         });
                     }
 
-                    const salaryEntry = {
-                        Rs: prevSalaryRecord.totalPayableSalary,
-                        paymentMode: 'cash', // Default mode for automated entries
-                        description: `Monthly Salary for ${prevMonthName} ${prevYear} (Auto-generated)`,
-                        updatedAt: new Date()
-                    };
+                    // Check if entry already exists for this month and year in paidToStaff
+                    const descriptionQuery = `Monthly Salary for ${prevMonthName} ${prevYear}`;
+                    const alreadyProcessed = khatabook.paidToStaff.some(entry => 
+                        entry.description && entry.description.includes(descriptionQuery)
+                    );
 
-                    khatabook.paidToStaff.push(salaryEntry);
-                    
-                    await khatabook.save();
-                    logger.info(`Automated salary entry added for staff ${staff.staffId} for ${prevMonthName} ${prevYear}`);
+                    if (!alreadyProcessed) {
+                        const salaryEntry = {
+                            Rs: prevSalaryRecord.totalPayableSalary,
+                            paymentMode: 'cash',
+                            description: `${descriptionQuery} (Auto-generated)`,
+                            updatedAt: new Date()
+                        };
+
+                        khatabook.paidToStaff.push(salaryEntry);
+                        
+                        await khatabook.save();
+                        logger.info(`Automated salary entry added for staff ${staff.staffId} for ${prevMonthName} ${prevYear}`);
+                    } else {
+                        logger.warn(`Salary for ${prevMonthName} ${prevYear} already exists in Khatabook for staff ${staff.staffId}. Skipping.`);
+                    }
                 }
 
                 // 2. Initialize current month's record in staffPayableSalary
